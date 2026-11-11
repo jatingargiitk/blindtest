@@ -20,9 +20,11 @@ def render(g: Grade) -> str:
     width = max([len(b.label) for b in g.buggy] + [6])
     for b in g.buggy:
         tids = g.caught.get(b.label, [])
-        status = "CAUGHT" if tids else "MISSED"
         extra = " (timed out)" if b.timed_out else ""
-        lines.append(f"  {b.label.ljust(width)}  {status}  by {len(tids)} test(s){extra}")
+        if tids:
+            lines.append(f"  {b.label.ljust(width)}  CAUGHT by {len(tids)} test(s){extra}")
+        else:
+            lines.append(f"  {b.label.ljust(width)}  MISSED, no test that passes on fixed fails here{extra}")
         for t in tids:
             lines.append(f"  {' ' * width}    - {t}")
     lines.append("")

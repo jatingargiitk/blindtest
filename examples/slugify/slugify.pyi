@@ -1,0 +1,3 @@
+from typing import Optional
+
+def slugify(text: str, sep: str = "-", max_len: Optional[int] = None) -> str: ...
