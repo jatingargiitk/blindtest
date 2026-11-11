@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[test]"
+      - run: python -m pytest -q
+      - name: Example runs end to end
+        working-directory: examples/slugify
+        run: |
+          blindtest prepare room --spec SPEC.md --interface slugify.pyi
+          blindtest write room -- python ../stand_in_agent.py
+          blindtest verify room
+          set +e
+          blindtest grade room --fixed fixed --buggy buggy-no-strip --buggy buggy-drops-accents --buggy buggy-max-len
+          code=$?
+          set -e
+          test "$code" -eq 1
