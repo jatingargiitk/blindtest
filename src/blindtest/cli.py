@@ -44,8 +44,6 @@ def cmd_write(args) -> int:
     room = Path(args.room)
     load_manifest(room)
     command = args.command
-    if command and command[0] == "--":
-        command = command[1:]
     if not command:
         raise RoomError("give the agent command after --, e.g. blindtest write ROOM -- my-agent ...")
     env = dict(os.environ)
@@ -134,11 +132,14 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--force", action="store_true", help="replace an existing room")
     sp.set_defaults(func=cmd_prepare)
 
-    sw = sub.add_parser("write", help="run the agent inside the room, then seal its tests")
+    sw = sub.add_parser(
+        "write",
+        help="run the agent inside the room, then seal its tests",
+        usage="blindtest write ROOM [--timeout S] [--seal-on-failure] -- COMMAND [ARGS...]",
+    )
     sw.add_argument("room")
     sw.add_argument("--timeout", type=float, default=1800.0, help="seconds (default 1800)")
     sw.add_argument("--seal-on-failure", action="store_true", help="seal even if the agent exits non-zero")
-    sw.add_argument("command", nargs=argparse.REMAINDER, help="-- agent command and arguments")
     sw.set_defaults(func=cmd_write)
 
     ss = sub.add_parser("seal", help="seal tests you had an agent write some other way")
@@ -163,7 +164,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    command: List[str] = []
+    if "--" in argv:
+        i = argv.index("--")
+        argv, command = argv[:i], argv[i + 1:]
     args = build_parser().parse_args(argv)
+    args.command = command
     try:
         return args.func(args)
     except RoomError as exc:
